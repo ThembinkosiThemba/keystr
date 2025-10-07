@@ -1,23 +1,30 @@
-# Keystroke Counter 🔢
+# Keystroke Counter
 
 A privacy-focused CLI tool that counts your keyboard activity without storing any actual keypress data. Perfect for tracking typing productivity and habits!
 
-## 🔐 Privacy First
+## Getting Started
+```bash
+cargo install keystr
+keystr init
+keystr start
+```
 
-- ✅ **Only counts keystrokes** - no actual key data is captured or stored
-- ✅ **Fully transparent** - all data stored locally in plain JSON
-- ✅ **Open source** - audit the code yourself
-- ✅ **No network access** - everything stays on your machine
+> If you face installation issues on Debian/Ubuntu, do the [Prerequisites](#Prerequisites) 
 
-## ✨ Features
+- **Only counts keystrokes** - no actual key data is captured or stored
+- **Fully transparent** - all data stored locally
+- **Open source** - audit the code yourself
+- **No network access** - everything stays on your machine
 
-- 📊 Track total, daily, weekly, and monthly keystroke counts
-- 🚀 Runs in detached background mode
-- 📁 Export statistics to text files
-- 🎨 Beautiful colored terminal output
-- 🔧 Simple configuration in your config directory
+## Features
 
-## 📋 Prerequisites
+- Track total, daily, weekly, and monthly keystroke counts
+- Runs in detached background mode
+- Export statistics to text files
+- Beautiful colored terminal output
+- Simple configuration in your config directory
+
+## Prerequisites
 
 ### Linux (Ubuntu/Debian)
 ```bash
@@ -35,27 +42,31 @@ sudo dnf install libX11-devel libXtst-devel libevdev-devel libxcb-devel
 sudo pacman -S libx11 libxtst libevdev libxcb
 ```
 
-## 🚀 Installation
+## Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd keystroke-counter
+git clone https://github.com/thembinkosimkhonta01/keystr
+cd keystr
 ```
 
 2. Build the project:
 ```bash
+make build
+# or 
 cargo build --release
 ```
 
 3. (Optional) Install globally:
 ```bash
+make install 
+# or
 cargo install --path .
 ```
 
 Or copy the binary to your PATH:
 ```bash
-sudo cp target/release/keystroke-counter /usr/local/bin/
+sudo cp target/release/keystr /usr/local/bin/
 ```
 
 ## 📖 Usage
@@ -63,13 +74,13 @@ sudo cp target/release/keystroke-counter /usr/local/bin/
 ### Initialize
 Set up the configuration directory and data files:
 ```bash
-keystroke-counter init
+keystr init
 ```
 
 ### Start Monitoring
 Start the background daemon (runs in detached mode):
 ```bash
-keystroke-counter start
+keystr start
 ```
 
 The daemon will run in the background and count keystrokes silently.
@@ -77,114 +88,86 @@ The daemon will run in the background and count keystrokes silently.
 ### Check Status
 Check if monitoring is currently running:
 ```bash
-keystroke-counter status
+keystr status
 ```
 
 ### Stop Monitoring
 Stop the background daemon:
 ```bash
-keystroke-counter stop
+keystr stop
 ```
 
 ### View Statistics
 
 Show all statistics (default shows daily for last 7 days):
 ```bash
-keystroke-counter stats
+keystr stats
 ```
 
 Show daily statistics:
 ```bash
-keystroke-counter stats --daily
+keystr stats --daily
 ```
 
 Show weekly statistics:
 ```bash
-keystroke-counter stats --weekly
+keystr stats --weekly
 ```
 
 Show monthly statistics:
 ```bash
-keystroke-counter stats --monthly
+keystr stats --monthly
 ```
 
 Combine flags:
 ```bash
-keystroke-counter stats --daily --weekly --monthly
+keystr stats --daily --weekly --monthly
 ```
 
 ### Export Statistics
 Export statistics to a text file:
 ```bash
-keystroke-counter export
+keystr export
 ```
 
 Custom output file:
 ```bash
-keystroke-counter export --output my_stats.txt
+keystr export --output my_stats.txt
 ```
 
 ### Reset Statistics
 Clear all statistics (requires confirmation):
 ```bash
-keystroke-counter reset
+keystr reset
 ```
 
 ## 📁 Configuration
 
 All data is stored in your system's config directory:
 
-- **Linux**: `~/.config/keystroke/`
-- **macOS**: `~/Library/Application Support/keystroke/`
-- **Windows**: `C:\Users\<User>\AppData\Roaming\keystroke\`
+- **Linux**: `~/.config/keystr/`
+- **macOS**: `~/Library/Application Support/keystr/`
+- **Windows**: `C:\Users\<User>\AppData\Roaming\keystr\`
 
 Files:
 - `data.json` - Stores keystroke counts and statistics
 - `daemon.pid` - Process ID of running daemon (when active)
-
-## 🔧 Development
-
-### Dependencies
-
-Add to your `Cargo.toml`:
-```toml
-[dependencies]
-clap = { version = "4.5", features = ["derive"] }
-colored = "2.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-rdev = "0.5"
-dirs = "5.0"
-ctrlc = "3.4"
-```
-
-### Build
-```bash
-cargo build
-```
-
-### Run in development
-```bash
-cargo run -- init
-cargo run -- start
-cargo run -- stats
-```
 
 ## 🐛 Troubleshooting
 
 ### "Permission denied" errors on Linux
 The daemon might need elevated permissions to monitor keyboard events. Try:
 ```bash
-sudo keystroke-counter start
+sudo keystr start
 ```
 
 ### Daemon won't start
-1. Check if it's already running: `keystroke-counter status`
+1. Check if it's already running: `keystr status`
 2. Check system logs for errors
 3. Try stopping and starting again:
 ```bash
-keystroke-counter stop
-keystroke-counter start
+keystr stop
+keystr start
 ```
 
 ### Build fails with X11 errors
@@ -192,7 +175,7 @@ Make sure you've installed the X11 development libraries (see Prerequisites sect
 
 ## 📊 Example Output
 
-```
+```bash
 === Keystroke Statistics ===
 Total Keystrokes: 45,782
 
@@ -224,9 +207,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 This tool is designed for personal productivity tracking only. Always respect privacy laws and obtain proper consent before monitoring any keyboard activity that isn't your own.
 
-## 🙏 Acknowledgments
-
-- Built with [Rust](https://www.rust-lang.org/)
-- Uses [rdev](https://github.com/Narsil/rdev) for keyboard event monitoring
-- CLI powered by [clap](https://github.com/clap-rs/clap)
-- Beautiful colors by [colored](https://github.com/mackwic/colored)

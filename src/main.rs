@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Parser)]
-#[command(name = "keystroke-counter")]
+#[command(name = "keystr")]
 #[command(about = "A CLI tool to count keyboard presses (no key data stored)", long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -154,16 +154,13 @@ fn format_date_display(time: &SystemTime) -> String {
     let secs = duration.as_secs();
     let days_since_epoch = (secs / 86400) as i64;
 
-    // Calculate year, month, day from days since epoch
     let mut year = 1970;
     let mut days_remaining = days_since_epoch;
 
-    // Approximate year
     let years_passed = days_remaining / 365;
     year += years_passed as i32;
     days_remaining -= years_passed * 365;
 
-    // Adjust for leap years (rough approximation)
     let leap_days = years_passed / 4;
     days_remaining -= leap_days;
 
@@ -172,7 +169,6 @@ fn format_date_display(time: &SystemTime) -> String {
         days_remaining += 365;
     }
 
-    // Month calculation (simplified)
     let month_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     let mut month = 0;
     let mut day = days_remaining as i32;
@@ -221,7 +217,7 @@ fn is_running() -> Option<u32> {
     let pid_str = fs::read_to_string(&pid_file).ok()?;
     let pid: u32 = pid_str.trim().parse().ok()?;
 
-    // Check if process is actually running
+    // we need to check if process is actually running
     #[cfg(unix)]
     {
         use std::process::Command;
@@ -234,7 +230,6 @@ fn is_running() -> Option<u32> {
         if output.status.success() {
             Some(pid)
         } else {
-            // Process not running, clean up stale PID file
             let _ = fs::remove_file(&pid_file);
             None
         }
@@ -276,7 +271,7 @@ fn cmd_init() {
     println!("\n{}", "Initialization complete!".bright_green().bold());
     println!(
         "Run {} to start monitoring.",
-        "keystroke-counter start".bright_yellow()
+        "keystr start".bright_yellow()
     );
 }
 
@@ -314,12 +309,11 @@ fn cmd_start() {
     {
         Command::new(exe)
             .arg("daemon")
-            .creation_flags(0x08000000) // DETACHED_PROCESS
+            .creation_flags(0x08000000)
             .spawn()
             .expect("Failed to start daemon");
     }
 
-    // Wait a moment for daemon to start
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     if let Some(pid) = is_running() {
@@ -334,7 +328,7 @@ fn cmd_start() {
         );
         println!(
             "Run {} to stop monitoring.",
-            "keystroke-counter stop".bright_yellow()
+            "keystr stop".bright_yellow()
         );
     } else {
         println!("{} Failed to start monitoring", "✗".red());
@@ -426,7 +420,6 @@ fn draw_line_graph(records: &[DailyRecord], max_height: usize) {
     let max_count = records.iter().map(|r| r.count).max().unwrap_or(1);
     let scale = max_count as f64 / max_height as f64;
 
-    // Draw graph from top to bottom
     for row in (0..max_height).rev() {
         let threshold = (row as f64 * scale) as u64;
         print!("  ");
@@ -442,14 +435,12 @@ fn draw_line_graph(records: &[DailyRecord], max_height: usize) {
         println!();
     }
 
-    // Draw x-axis
     print!("  ");
     for _ in records {
         print!("─ ");
     }
     println!();
 
-    // Draw labels (dates)
     print!("  ");
     for record in records {
         let timestamp = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(record.timestamp);

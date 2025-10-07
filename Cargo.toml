@@ -3,6 +3,14 @@ name = "keystroke"
 version = "0.1.0"
 edition = "2024"
 
+description = "A keystroke monitor for Unix OSs using Rust, and tracks the number of key strokes made when active"
+license = "MIT"
+homepage = "https://github.com/thembinkosimkhonta01/keystr"
+repository = "https://github.com/thembinkosimkhonta01/keystr"
+readme = "README.md"
+keywords = ["tool", "keystr", "keystroke", "installation", "cli"]
+include = ["src/**/*.rs", "Cargo.toml", "README.md"]
+
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 colored = "2.1"
@@ -12,5 +20,6 @@ rdev = "0.5"
 dirs = "5.0"
 ctrlc = "3.4"
 
-# [[bin]]
-# keystr
+[[bin]]
+name = "keystr"
+path = "src/main.rs"
