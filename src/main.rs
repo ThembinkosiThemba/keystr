@@ -243,54 +243,68 @@ fn is_running() -> Option<u32> {
 
 fn cmd_init() {
     println!(
+        "\n{}",
+        "╭─────────────────────────────────────╮".bright_black()
+    );
+    println!(
         "{}",
-        "Initializing Keystroke Counter...".bright_cyan().bold()
+        "│  Keystroke Counter Initialization  │"
+            .bright_cyan()
+            .bold()
+    );
+    println!(
+        "{}\n",
+        "╰─────────────────────────────────────╯".bright_black()
     );
 
     let config_dir = get_config_dir();
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir).expect("Failed to create config directory");
         println!(
-            "  {} Created config directory: {}",
-            "✓".green(),
-            config_dir.display()
+            "  {} {}",
+            "✓".green().bold(),
+            "Config directory created".dimmed()
         );
     } else {
-        println!("  {} Config directory already exists", "✓".green());
+        println!(
+            "  {} {}",
+            "✓".green().bold(),
+            "Config directory ready".dimmed()
+        );
     }
 
     let data_file = get_data_file();
     if !data_file.exists() {
         let initial_data = KeystrokeData::new();
         save_data(&initial_data);
-        println!("  {} Created data file", "✓".green());
+        println!(
+            "  {} {}",
+            "✓".green().bold(),
+            "Data file created with sample history".dimmed()
+        );
     } else {
-        println!("  {} Data file already exists", "✓".green());
+        println!("  {} {}", "✓".green().bold(), "Data file ready".dimmed());
     }
 
-    println!("\n{}", "Initialization complete!".bright_green().bold());
+    println!("\n  {} {}", "→".bright_cyan(), "Ready to start monitoring!");
     println!(
-        "Run {} to start monitoring.",
-        "keystr start".bright_yellow()
+        "  {} Run {} to begin\n",
+        "→".bright_cyan(),
+        "keystr start".bright_yellow().bold()
     );
 }
 
 fn cmd_start() {
     if let Some(pid) = is_running() {
         println!(
-            "{} Already running with PID {}",
-            "✓".green(),
-            pid.to_string().bright_white()
+            "\n  {} Monitoring is already active (PID: {})\n",
+            "●".green().bold(),
+            pid.to_string().bright_cyan()
         );
         return;
     }
 
-    println!(
-        "{}",
-        "Starting keystroke monitoring in background..."
-            .bright_cyan()
-            .bold()
-    );
+    println!("\n  {} Starting keystroke monitor...", "→".bright_cyan());
 
     let exe = std::env::current_exe().expect("Failed to get current executable path");
 
@@ -318,26 +332,31 @@ fn cmd_start() {
 
     if let Some(pid) = is_running() {
         println!(
-            "{} Monitoring started with PID {}",
-            "✓".green(),
-            pid.to_string().bright_white()
+            "  {} Monitor active (PID: {})",
+            "✓".green().bold(),
+            pid.to_string().bright_cyan()
         );
         println!(
-            "{}",
-            "No actual key data is captured - only counts!".bright_black()
+            "  {} Only counting keystrokes - no data captured",
+            "ℹ".blue()
         );
         println!(
-            "Run {} to stop monitoring.",
+            "  {} Use {} to stop\n",
+            "→".bright_cyan(),
             "keystr stop".bright_yellow()
         );
     } else {
-        println!("{} Failed to start monitoring", "✗".red());
+        println!("  {} Failed to start monitor\n", "✗".red().bold());
     }
 }
 
 fn cmd_stop() {
     if let Some(pid) = is_running() {
-        println!("{}", "Stopping monitoring...".bright_yellow());
+        println!(
+            "\n  {} Stopping monitor (PID: {})...",
+            "→".bright_yellow(),
+            pid.to_string().bright_cyan()
+        );
 
         #[cfg(unix)]
         {
@@ -356,27 +375,25 @@ fn cmd_stop() {
         }
 
         let _ = fs::remove_file(get_pid_file());
-        println!("{} Monitoring stopped", "✓".green());
+        println!("  {} Monitor stopped\n", "✓".green().bold());
     } else {
-        println!("{} Not currently running", "ℹ".blue());
+        println!("\n  {} Monitor is not running\n", "ℹ".blue());
     }
 }
 
 fn cmd_status() {
+    println!();
     if let Some(pid) = is_running() {
         println!(
-            "{} {} Running with PID {}",
-            "●".green(),
-            "Status:".bright_white().bold(),
-            pid.to_string().bright_green()
+            "  {} {} │ PID: {}",
+            "●".green().bold(),
+            "Active".bright_green().bold(),
+            pid.to_string().bright_cyan()
         );
     } else {
-        println!(
-            "{} {} Not running",
-            "○".dimmed(),
-            "Status:".bright_white().bold()
-        );
+        println!("  {} {}", "○".dimmed(), "Inactive".dimmed());
     }
+    println!();
 }
 
 fn cmd_daemon() {
@@ -420,34 +437,49 @@ fn draw_line_graph(records: &[DailyRecord], max_height: usize) {
     let max_count = records.iter().map(|r| r.count).max().unwrap_or(1);
     let scale = max_count as f64 / max_height as f64;
 
+    // Draw Y-axis label
+    println!("     {}", format!("{}", max_count).bright_black());
+
     for row in (0..max_height).rev() {
         let threshold = (row as f64 * scale) as u64;
-        print!("  ");
+        print!("     ");
 
-        for record in records {
+        for (i, record) in records.iter().enumerate() {
             if record.count > threshold {
-                print!("{}", "█".bright_green());
+                let bar = if record.count == max_count && row == max_height - 1 {
+                    "█".bright_cyan().bold()
+                } else {
+                    "█".bright_green()
+                };
+                print!("{}", bar);
             } else {
+                print!("{}", "·".truecolor(40, 40, 40));
+            }
+            if i < records.len() - 1 {
                 print!(" ");
             }
-            print!(" ");
         }
         println!();
     }
 
-    print!("  ");
-    for _ in records {
-        print!("─ ");
+    // Draw X-axis
+    print!("     ");
+    for i in 0..records.len() {
+        print!("{}", "─".bright_black());
+        if i < records.len() - 1 {
+            print!(" ");
+        }
     }
     println!();
 
-    print!("  ");
+    // Draw dates
+    print!("     ");
     for record in records {
         let timestamp = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(record.timestamp);
         let formatted = format_date_display(&timestamp);
         let parts: Vec<&str> = formatted.split_whitespace().collect();
         if parts.len() >= 2 {
-            print!("{}", format!("{} ", parts[0]).bright_black());
+            print!("{} ", format!("{}", parts[0]).truecolor(100, 100, 100));
         }
     }
     println!("\n");
@@ -456,18 +488,34 @@ fn draw_line_graph(records: &[DailyRecord], max_height: usize) {
 fn cmd_stats(daily: bool, weekly: bool, monthly: bool) {
     let data = load_data();
 
-    println!("\n{}", "=== Keystroke Statistics ===".bright_cyan().bold());
     println!(
-        "{} {}",
-        "Total Keystrokes:".bright_white().bold(),
-        data.total_count.to_string().bright_green()
+        "\n{}",
+        "╭────────────────────────────────────╮".bright_black()
+    );
+    println!(
+        "{}",
+        "│      Keystroke Statistics          │"
+            .bright_cyan()
+            .bold()
+    );
+    println!(
+        "{}",
+        "╰────────────────────────────────────╯".bright_black()
+    );
+
+    println!(
+        "\n     {} {}",
+        "Total:".dimmed(),
+        data.total_count.to_string().bright_cyan().bold()
     );
 
     if daily || (!weekly && !monthly) {
         println!(
-            "\n{}",
-            "📅 Daily Stats (Last 7 Days):".bright_yellow().bold()
+            "\n     {}",
+            "Daily Activity (Last 7 Days)".bright_white().bold()
         );
+        println!("     {}\n", "─".repeat(28).bright_black());
+
         let daily_stats = data.get_daily_stats(7);
 
         // Reverse for chronological order in graph
@@ -483,8 +531,8 @@ fn cmd_stats(daily: bool, weekly: bool, monthly: bool) {
                 SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(record.timestamp);
             let formatted_date = format_date_display(&timestamp);
             println!(
-                "  {} {} keystrokes",
-                formatted_date.bright_white(),
+                "     {} │ {}",
+                formatted_date.truecolor(120, 120, 120),
                 record.count.to_string().bright_green()
             );
         }
@@ -492,20 +540,25 @@ fn cmd_stats(daily: bool, weekly: bool, monthly: bool) {
 
     if weekly {
         let weekly_count = data.get_weekly_stats();
+        println!("\n     {}", "Weekly Summary (7 days)".bright_white().bold());
+        println!("     {}", "─".repeat(28).bright_black());
         println!(
-            "\n{}",
-            "📊 Weekly Stats (Last 7 Days):".bright_yellow().bold()
+            "     {} keystrokes\n",
+            weekly_count.to_string().bright_cyan().bold()
         );
-        println!("  {} keystrokes", weekly_count.to_string().bright_green());
     }
 
     if monthly {
         let monthly_count = data.get_monthly_stats();
         println!(
-            "\n{}",
-            "📈 Monthly Stats (Last 30 Days):".bright_yellow().bold()
+            "\n     {}",
+            "Monthly Summary (30 days)".bright_white().bold()
         );
-        println!("  {} keystrokes", monthly_count.to_string().bright_green());
+        println!("     {}", "─".repeat(28).bright_black());
+        println!(
+            "     {} keystrokes\n",
+            monthly_count.to_string().bright_cyan().bold()
+        );
     }
 
     println!();
@@ -515,11 +568,13 @@ fn cmd_export(output: &str) {
     let data = load_data();
 
     let mut content = String::new();
-    content.push_str("=== Keystroke Counter Statistics ===\n\n");
+    content.push_str("╭────────────────────────────────────╮\n");
+    content.push_str("│   Keystroke Counter Statistics     │\n");
+    content.push_str("╰────────────────────────────────────╯\n\n");
     content.push_str(&format!("Total Keystrokes: {}\n\n", data.total_count));
 
     content.push_str("Daily Records:\n");
-    content.push_str("----------------------------------------\n");
+    content.push_str("────────────────────────────────────\n");
     for record in data.daily_records.iter().rev() {
         let timestamp = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(record.timestamp);
         let formatted_date = format_date_display(&timestamp);
@@ -529,21 +584,23 @@ fn cmd_export(output: &str) {
         ));
     }
 
-    content.push_str("\nWeekly (Last 7 days): ");
+    content.push_str("\nWeekly Summary (7 days):  ");
     content.push_str(&format!("{} keystrokes\n", data.get_weekly_stats()));
 
-    content.push_str("Monthly (Last 30 days): ");
+    content.push_str("Monthly Summary (30 days): ");
     content.push_str(&format!("{} keystrokes\n", data.get_monthly_stats()));
 
     fs::write(output, content).expect("Failed to write export file");
-    println!("{} Exported to {}", "✓".green(), output.bright_white());
+    println!(
+        "\n  {} Exported to {}\n",
+        "✓".green().bold(),
+        output.bright_cyan()
+    );
 }
 
 fn cmd_reset() {
-    print!(
-        "{}",
-        "Are you sure you want to reset all statistics? (y/N): ".bright_yellow()
-    );
+    println!();
+    print!("  {} ", "Reset all statistics? (y/N):".bright_yellow());
     use std::io::{self, Write};
     io::stdout().flush().unwrap();
 
@@ -553,9 +610,9 @@ fn cmd_reset() {
     if input.trim().to_lowercase() == "y" {
         let new_data = KeystrokeData::new();
         save_data(&new_data);
-        println!("{}", "All statistics have been reset.".green());
+        println!("  {} All statistics cleared\n", "✓".green().bold());
     } else {
-        println!("{}", "Reset cancelled.".dimmed());
+        println!("  {} Reset cancelled\n", "ℹ".blue());
     }
 }
 
