@@ -1,6 +1,6 @@
 [package]
 name = "keystr"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 description = "A keystroke monitor for Unix OSs using Rust, and tracks the number of key strokes made when active"

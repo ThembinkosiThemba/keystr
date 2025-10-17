@@ -41,11 +41,15 @@ enum Commands {
     /// Export statistics to a text file
     Export {
         /// Output file path
-        #[arg(short, long, default_value = "keystroke_stats.txt")]
+        #[arg(short, long, default_value = "keystr_stats.txt")]
         output: String,
     },
     /// Reset all statistics
     Reset,
+    /// Enable auto-start on boot
+    Enable,
+    /// Disable auto-start on boot
+    Disable,
     /// Internal command - do not use directly
     #[command(hide = true)]
     Daemon,
@@ -241,6 +245,24 @@ fn is_running() -> Option<u32> {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn is_autostart_enabled() -> bool {
+    let service_name = "keystr";
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .arg("is-enabled")
+        .arg(service_name)
+        .output()
+        .expect("Failed to check service status");
+
+    String::from_utf8_lossy(&output.stdout).trim() == "enabled"
+}
+
+#[cfg(not(target_os = "linux"))]
+fn is_autostart_enabled() -> bool {
+    false
+}
+
 fn cmd_init() {
     println!(
         "\n{}",
@@ -392,6 +414,20 @@ fn cmd_status() {
         );
     } else {
         println!("  {} {}", "○".dimmed(), "Inactive".dimmed());
+    }
+
+    if is_autostart_enabled() {
+        println!(
+            "  {} {}",
+            "✓".green().bold(),
+            "Auto-start is Enabled".dimmed()
+        );
+    } else {
+        println!(
+            "  {} {}",
+            "✗".red().bold(),
+            "Auto-start is Disabled".dimmed()
+        );
     }
     println!();
 }
@@ -569,7 +605,7 @@ fn cmd_export(output: &str) {
 
     let mut content = String::new();
     content.push_str("╭────────────────────────────────────╮\n");
-    content.push_str("│   Keystroke Counter Statistics     │\n");
+    content.push_str("│   Keystr Counter Statistics     │\n");
     content.push_str("╰────────────────────────────────────╯\n\n");
     content.push_str(&format!("Total Keystrokes: {}\n\n", data.total_count));
 
@@ -616,6 +652,103 @@ fn cmd_reset() {
     }
 }
 
+#[cfg(target_os = "linux")]
+fn cmd_enable() {
+    let exe_path = std::env::current_exe().expect("Failed to get executable path");
+    let service_name = "keystr";
+    let service_unit = format!(
+        r#"[Unit]
+Description=Keystr Daemon
+
+[Service]
+ExecStart={} daemon
+Restart=always
+
+[Install]
+WantedBy=default.target
+"#,
+        exe_path.to_str().unwrap()
+    );
+
+    let service_path = dirs::config_dir()
+        .unwrap()
+        .join("systemd/user")
+        .join(format!("{}.service", service_name));
+
+    fs::create_dir_all(service_path.parent().unwrap()).expect("Failed to create systemd user dir");
+    fs::write(&service_path, service_unit).expect("Failed to write service file");
+
+    Command::new("systemctl")
+        .arg("--user")
+        .arg("daemon-reload")
+        .output()
+        .expect("Failed to reload daemon");
+
+    Command::new("systemctl")
+        .arg("--user")
+        .arg("enable")
+        .arg(service_name)
+        .output()
+        .expect("Failed to enable service");
+
+    Command::new("systemctl")
+        .arg("--user")
+        .arg("start")
+        .arg(service_name)
+        .output()
+        .expect("Failed to start service");
+
+    println!("\n  {} Auto-start enabled.", "✓".green().bold());
+    println!("  {} Keystr will now run on boot.", "ℹ".blue());
+    println!(
+        "  {} Use `keystr disable` to turn off.\n",
+        "→".bright_cyan()
+    );
+}
+
+#[cfg(target_os = "linux")]
+fn cmd_disable() {
+    let service_name = "keystr";
+    let service_path = dirs::config_dir()
+        .unwrap()
+        .join("systemd/user")
+        .join(format!("{}.service", service_name));
+
+    Command::new("systemctl")
+        .arg("--user")
+        .arg("stop")
+        .arg(service_name)
+        .output()
+        .expect("Failed to stop service");
+
+    Command::new("systemctl")
+        .arg("--user")
+        .arg("disable")
+        .arg(service_name)
+        .output()
+        .expect("Failed to disable service");
+
+    fs::remove_file(service_path).ok();
+
+    println!("\n  {} Auto-start disabled.", "✓".green().bold());
+}
+
+#[cfg(not(target_os = "linux"))]
+fn cmd_enable() {
+    println!(
+        "\n  {} Auto-start is only supported on Linux with systemd.\n",
+        "ℹ".blue()
+    );
+}
+
+#[cfg(not(target_os = "linux"))]
+fn cmd_disable() {
+    println!(
+        "\n  {} Auto-start is only supported on Linux with systemd.\n",
+        "ℹ".blue()
+    );
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -631,6 +764,8 @@ fn main() {
         } => cmd_stats(daily, weekly, monthly),
         Commands::Export { output } => cmd_export(&output),
         Commands::Reset => cmd_reset(),
+        Commands::Enable => cmd_enable(),
+        Commands::Disable => cmd_disable(),
         Commands::Daemon => cmd_daemon(),
     }
 }
